@@ -1,0 +1,297 @@
+#include <ESP8266WiFi.h>
+#include <ThingSpeak.h>
+#include <AnalogSmooth.h>
+
+AnalogSmooth as = AnalogSmooth();
+AnalogSmooth as100 = AnalogSmooth(10);
+
+#define D0 16
+#define D1 5
+#define D2 4
+#define D3 0
+#define D4 2
+#define D5 14
+#define D6 12
+#define D7 13
+
+//For the "ssid" below please input the name of the wifi server you wish to connect to
+//For the "password" below please input the password of your selected wifi server
+
+const char* ssid = "guest";
+const char* password = "shefconfkey";
+
+int status = WL_IDLE_STATUS;
+WiFiClient  client;
+
+// for shift register (digital multiplexer)
+int latchPin=D6;
+int clockPin=D5;
+int dataPin=D7;
+
+byte rows = 0;
+
+//for analogue multiplexr (the red one)
+int s0 = D1;
+int s1 = D2;
+int s2 = D3;
+int s3 = D4;
+
+//specify which channle to read
+int col0 [] = {0,0,0,0};
+int col1 [] = {1,0,0,0};
+int col2 [] = {0,1,0,0};
+int col3 [] = {1,1,0,0};
+int col4 [] = {0,0,1,0};
+int col5 [] = {1,0,1,0};
+
+unsigned long channelNum[] = {310872,310875,310876,310878,310879,310880,};
+const char * keys[] = {"H2CZE3VBCZN45518","7SAKIFO50AN73MRC","NOH9ZPHRAF7I63CZ","PKQSUEYOQDJ77YI2","IPSHPERPT5ZWFHTP","JZ1I1HB0R4W8EJO0"};
+
+int col1arr[9];
+int col2arr[9];
+int col3arr[9];
+int col4arr[9];
+int col5arr[9];
+int col6arr[9];
+
+
+void setup() {
+  Serial.begin(115200);  
+  delay(10);  
+  // Connect to WiFi network  
+  Serial.println();  
+  Serial.println();  
+  Serial.print("Connecting to ");  
+  Serial.println(ssid);
+//  WiFi.mode(WIFI_STA); // SETS TO STATION MODE!
+ 
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)  
+  {  
+   delay(500);  
+   Serial.print(".");  
+  }  
+  Serial.println("");  
+  Serial.println("WiFi connected");  
+  // Print the IP address  
+  Serial.println(WiFi.localIP());  
+  ThingSpeak.begin(client);
+
+
+pinMode(latchPin, OUTPUT);
+pinMode(clockPin, OUTPUT);
+pinMode(dataPin, OUTPUT);
+
+pinMode(s0, OUTPUT);
+pinMode(s1, OUTPUT);
+pinMode(s2, OUTPUT);
+pinMode(s3, OUTPUT);
+
+pinMode(A0,INPUT);
+
+}
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  
+//when you need to determine which pin is which, comment out 
+//all but second line para and find the pin that is low
+//row 0
+rows = 191;
+updateShiftRegister();
+Serial.println();
+readColumns(0);
+delay(500);
+
+//row 1
+rows = 223;
+updateShiftRegister();
+Serial.println();
+readColumns(1);
+delay(500);
+
+//row 2
+rows = 239;
+updateShiftRegister();
+Serial.println();
+readColumns(2);
+delay(500);
+
+//row 3
+rows = 247;
+updateShiftRegister();
+Serial.println();
+readColumns(3);
+delay(500);
+
+//row 4
+rows = 251;
+updateShiftRegister();
+Serial.println();
+readColumns(4);
+delay(500);
+
+//row 5
+rows = 253;
+updateShiftRegister();
+Serial.println();
+readColumns(5);
+delay(500);
+
+//row 6
+rows = 254;
+updateShiftRegister();
+Serial.println();
+readColumns(6);
+delay(500);
+
+//row 7
+rows = 127;
+updateShiftRegister();
+Serial.println();
+readColumns(7);
+delay(500);
+
+Serial.println(" ");
+Serial.println(" ");
+Serial.println("#############");
+
+  for (int k=0;k<8;k++)
+  {
+   Serial.println(" ");
+   Serial.print(col1arr[k]);
+  }
+
+Serial.println("#############");
+
+//send to thingspeak
+
+}
+
+void updateShiftRegister()
+{
+   digitalWrite(latchPin, LOW);
+   shiftOut(dataPin, clockPin, LSBFIRST, rows);
+   digitalWrite(latchPin, HIGH);
+}
+
+//ticks through each column
+void readColumns(int i)
+{
+  int dat0, dat1, dat2, dat3, dat4, dat5;
+   
+  digitalWrite(s0 ,col0[0]);
+  digitalWrite(s1, col0[1]);  
+  digitalWrite(s2, col0[2]);
+  digitalWrite(s3, col0[3]);
+  delay (100);
+  dat0 = basicSmooth(A0,10);
+  Serial.print(dat0);
+  col1arr[i]=dat0;//ADD OTHERS ONCE TESTED
+  delay(100);
+  
+  digitalWrite(s0 ,col1[0]);
+  digitalWrite(s1, col1[1]);  
+  digitalWrite(s2, col1[2]);
+  digitalWrite(s3, col1[3]);
+  delay (100);
+  dat1 = basicSmooth(A0,10);
+  Serial.print("    ");
+  Serial.print(dat1);
+  col2arr[i]=dat1;
+  delay(100);
+
+  digitalWrite(s0 ,col2[0]);
+  digitalWrite(s1, col2[1]);  
+  digitalWrite(s2, col2[2]);
+  digitalWrite(s3, col2[3]);
+  delay (100);
+  dat2 = basicSmooth(A0,10);
+  Serial.print("    ");  
+  Serial.print(dat2);
+  col3arr[i]=dat2;
+  delay(100);
+
+  digitalWrite(s0 ,col3[0]);
+  digitalWrite(s1, col3[1]);  
+  digitalWrite(s2, col3[2]);
+  digitalWrite(s3, col3[3]);
+  delay (100);
+  dat3 = basicSmooth(A0,10);
+  Serial.print("    ");  
+  Serial.print(dat3);
+  col4arr[i]=dat3;
+  delay(100);
+
+  digitalWrite(s0 ,col4[0]);
+  digitalWrite(s1, col4[1]);  
+  digitalWrite(s2, col4[2]);
+  digitalWrite(s3, col4[3]);
+  delay (100);
+  dat4 = basicSmooth(A0,10);
+  Serial.print("    ");  
+  Serial.print(dat4);
+  col5arr[i]=dat4;
+  delay(100);
+
+  digitalWrite(s0 ,col5[0]);
+  digitalWrite(s1, col5[1]);  
+  digitalWrite(s2, col5[2]);
+  digitalWrite(s3, col5[3]);
+  dat5 = basicSmooth(A0,10);
+  Serial.print("    ");    
+  Serial.print(dat5);  
+//  Serial.print("  :  ");  
+//  Serial.print(basicSmooth(A0,10));
+  col6arr[i]=dat5;
+  delay(100);
+}
+
+
+void fieldUpdate(int col[],unsigned long Num,const char * specKeys){
+
+}
+
+int calibrate(int raw,int y, int x)
+{
+  int light[9][7]=
+  {
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  };
+
+  int dark[9][7]=
+  {
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  {0,0,0,0,0,0},
+  };
+  
+  return((raw-light[y][x])*(dark[y][x]/light[y][x]));
+}
+
+int basicSmooth(int input,int num)
+{
+  int trial;
+  int total;
+  int i;
+  for(i=0;i<num;i++)
+  {
+  trial=analogRead(input);  
+  total=total+(trial/num);
+  delay(10);
+  }
+  return total;
+}
